@@ -176,7 +176,7 @@ def render(SCREEN, mouse_pos, mouse_index, fps, font, grid, render_mode):
     p.display.flip() 
 
 def main(): 
-    render_mode = 0 
+    render_mode = 1 
     grid_size = 50 
     mid = grid_size//2 
     mouse_pos = (p.mouse.get_pos()[0], p.mouse.get_pos()[1]) 

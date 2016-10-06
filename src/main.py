@@ -2,7 +2,6 @@ import pygame as p
 import sys 
 import random 
 
-from vector import * 
 from brick import * 
 
 BLACK = (0, 0, 0) 

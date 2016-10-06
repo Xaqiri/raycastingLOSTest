@@ -8,6 +8,7 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255) 
 GREEN = (0, 255, 0) 
 GRAY = (100, 100, 100) 
+CYAN = (0, 100, 255) 
 COLORS = [(random.randint(50, 255), random.randint(50, 255), random.randint(50, 255)) for x in range(100)] 
 wall_color = GRAY 
 hidden_color = BLACK 
@@ -15,14 +16,14 @@ revealed_color = WHITE
 ui_color = GREEN 
 
 p.init() 
-WIN_WIDTH = 800 
+WIN_WIDTH = 1600 
 WIN_HEIGHT = 800 
 SCREEN = p.display.set_mode((WIN_WIDTH, WIN_HEIGHT)) 
 p.display.set_caption('RL LOS Test') 
 font = p.font.SysFont('comicsans', 32) 
 grid_font = p.font.SysFont('comicsans', 20) 
 num_blocks = 200 
-
+render_mode = 1 
 SIGHT_RADIUS = 10 
 RAYS = 360 
 STEP = 3 
@@ -138,11 +139,19 @@ def input():
             sys.exit() 
         if e.type == p.KEYDOWN: 
             if e.key == p.K_ESCAPE: 
-                sys.exit()  
+                sys.exit() 
+            if e.key == p.K_0: 
+                render_mode = 0 
+                main(render_mode) 
+            if e.key == p.K_1: 
+                render_mode = 1 
+                main(render_mode) 
 
 def update(mouse_pos, mouse_index, grid, grid_size, mid): 
     px = mouse_index[0] 
     py = mouse_index[1] 
+    grid[py][px].color = CYAN 
+    grid[py][px].icon = '@' 
     for i in range(0, RAYS, STEP): 
         ax = sintable[i] 
         ay = costable[i] 
@@ -171,38 +180,47 @@ def render(SCREEN, mouse_pos, mouse_index, fps, font, grid, render_mode):
         for x in range(len(grid[0])): 
             grid[x][y].render(SCREEN, render_mode) 
             if grid[x][y].id == 'floor': 
+                grid[x][y].icon = '.' 
                 grid[x][y].color = hidden_color 
     p.display.flip() 
 
-def main(): 
-    render_mode = 1 
+def in_bounds(mouse_index, grid_size): 
+    if mouse_index[0] < grid_size and mouse_index[1] < grid_size: 
+        return True 
+    else: 
+        return False 
+
+def main(render_mode): 
     grid_size = 50 
     mid = grid_size//2 
     mouse_pos = (p.mouse.get_pos()[0], p.mouse.get_pos()[1]) 
     mouse_index = (mouse_pos[0]/grid_size, mouse_pos[1]/grid_size) 
     grid = [[0 for x in range(grid_size)] for y in range(grid_size)] 
+    brick_size = 15 
     for y in range(len(grid[0])): 
         for x in range(len(grid[0])): 
             if x == 0 or x == grid_size-1 or y == 0 or y == grid_size-1: 
-                grid[y][x] = Brick((x*10, y*10), (10, 10), wall_color, grid_font) 
+                grid[y][x] = Brick((x*brick_size, y*brick_size), (brick_size, brick_size), wall_color, grid_font) 
             else: 
-                grid[y][x] = Brick((x*10, y*10), (10, 10), hidden_color, grid_font) 
+                grid[y][x] = Brick((x*brick_size, y*brick_size), (brick_size, brick_size), hidden_color, grid_font) 
     for i in range(num_blocks): 
         x = random.randint(1, grid_size-2) 
         y = random.randint(1, grid_size-2) 
         grid[x][y].id = 'wall' 
-        grid[x][y].color = ui_color 
+        grid[x][y].color = wall_color 
         
     clock = p.time.Clock() 
     done = False 
     while not done: 
         fps = clock.get_fps() 
         mouse_pos = (p.mouse.get_pos()[0], p.mouse.get_pos()[1]) 
-        mouse_index = (mouse_pos[0]//10, mouse_pos[1]//10) 
+        mouse_index = (mouse_pos[0]//brick_size, mouse_pos[1]//brick_size) 
         input() 
-        update(mouse_pos, mouse_index, grid, grid_size, mid) 
+        if in_bounds(mouse_index, grid_size): 
+            if grid[mouse_index[1]][mouse_index[0]].id == 'floor': 
+                update(mouse_pos, mouse_index, grid, grid_size, mid) 
         render(SCREEN, mouse_pos, mouse_index, fps, font, grid, render_mode) 
         clock.tick(60) 
     p.quit() 
 
-main() 
+main(render_mode) 

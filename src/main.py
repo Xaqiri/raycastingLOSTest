@@ -1,6 +1,7 @@
 import pygame as p 
 import sys 
 import random 
+import math 
 
 from brick import * 
 
@@ -14,6 +15,7 @@ wall_color = GRAY
 hidden_color = BLACK 
 revealed_color = WHITE 
 ui_color = GREEN 
+grid_size = 50 
 
 p.init() 
 WIN_WIDTH = 1600 
@@ -152,6 +154,7 @@ def update(mouse_pos, mouse_index, grid, grid_size, mid):
     py = mouse_index[1] 
     grid[py][px].color = CYAN 
     grid[py][px].icon = '@' 
+    grid[py][px].revealed = True 
     for i in range(0, RAYS, STEP): 
         ax = sintable[i] 
         ay = costable[i] 
@@ -160,11 +163,9 @@ def update(mouse_pos, mouse_index, grid, grid_size, mid):
         for z in range(SIGHT_RADIUS): 
             x += ax 
             y += ay 
-            if x < 1 or y < 1 or x > grid_size-1 or y > grid_size-1: 
+            if x < 0 or y < 0 or x > grid_size-1 or y > grid_size-1: 
                 break 
-            if grid[int(round(y))][int(round(x))].id == 'floor': 
-                grid[int(round(y))][int(round(x))].color = revealed_color 
-            
+            grid[int(round(y))][int(round(x))].revealed = True 
             if grid[int(round(y))][int(round(x))].id == 'wall': 
                 break 
             
@@ -176,12 +177,14 @@ def render(SCREEN, mouse_pos, mouse_index, fps, font, grid, render_mode):
         SCREEN.blit(font.render(str((mouse_index[0], mouse_index[1])), 1, ui_color), (WIN_WIDTH-125, 50)) 
     else: 
         SCREEN.blit(font.render("Mouse outside of grid", 1, ui_color), (WIN_WIDTH-250, 50)) 
-    for y in range(len(grid[0])): 
-        for x in range(len(grid[0])): 
-            grid[x][y].render(SCREEN, render_mode) 
+    for y in range(grid_size): 
+        for x in range(grid_size): 
+            if grid[x][y].revealed: 
+                grid[x][y].render(SCREEN, render_mode) 
             if grid[x][y].id == 'floor': 
                 grid[x][y].icon = '.' 
-                grid[x][y].color = hidden_color 
+                grid[x][y].color = revealed_color 
+            grid[x][y].revealed = False 
     p.display.flip() 
 
 def in_bounds(mouse_index, grid_size): 
@@ -191,7 +194,6 @@ def in_bounds(mouse_index, grid_size):
         return False 
 
 def main(render_mode): 
-    grid_size = 50 
     mid = grid_size//2 
     mouse_pos = (p.mouse.get_pos()[0], p.mouse.get_pos()[1]) 
     mouse_index = (mouse_pos[0]/grid_size, mouse_pos[1]/grid_size) 
@@ -202,12 +204,12 @@ def main(render_mode):
             if x == 0 or x == grid_size-1 or y == 0 or y == grid_size-1: 
                 grid[y][x] = Brick((x*brick_size, y*brick_size), (brick_size, brick_size), wall_color, grid_font) 
             else: 
-                grid[y][x] = Brick((x*brick_size, y*brick_size), (brick_size, brick_size), hidden_color, grid_font) 
+                grid[y][x] = Brick((x*brick_size, y*brick_size), (brick_size, brick_size), revealed_color, grid_font) 
     for i in range(num_blocks): 
         x = random.randint(1, grid_size-2) 
         y = random.randint(1, grid_size-2) 
         grid[x][y].id = 'wall' 
-        grid[x][y].color = wall_color 
+        grid[x][y].color = random.choice(COLORS) 
         
     clock = p.time.Clock() 
     done = False 

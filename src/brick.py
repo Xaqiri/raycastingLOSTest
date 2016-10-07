@@ -8,7 +8,8 @@ class Brick():
         self.icon = '#' if self.color == (100, 100, 100) else '.' 
         self.font = font 
         self.id = 'wall' if self.icon == '#' else 'floor' 
-
+        self.revealed = False 
+        
     def render(self, SCREEN, render_mode): 
         if render_mode: 
             p.draw.rect(SCREEN, self.color, (self.pos, self.size)) 

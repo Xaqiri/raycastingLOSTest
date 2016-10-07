@@ -22,13 +22,18 @@ WIN_WIDTH = 1600
 WIN_HEIGHT = 800 
 SCREEN = p.display.set_mode((WIN_WIDTH, WIN_HEIGHT)) 
 p.display.set_caption('RL LOS Test') 
+font_size = 20 
 font = p.font.SysFont('comicsans', 32) 
-grid_font = p.font.SysFont('comicsans', 20) 
+grid_font = p.font.SysFont('comicsans', font_size) 
 num_blocks = 200 
+
 render_mode = 1 
+brick_size = 15 
+
 SIGHT_RADIUS = 10 
 RAYS = 360 
-STEP = 3 
+# Higher step values draw less rays.  This speeds up the calculations, but produce an imperfect vision coverage.  STEP = 1 gets ~ 45-50fps average 
+STEP = 1 
 
 sintable = [
     0.00000, 0.01745, 0.03490, 0.05234, 0.06976, 0.08716, 0.10453,
@@ -134,7 +139,8 @@ costable = [
     0.99939, 0.99985, 1.00000
 ]
 
-def input(): 
+def input(render_mode, brick_size, SIGHT_RADIUS, grid_font): 
+    global font_size 
     p.event.pump() 
     for e in p.event.get(): 
         if e.type == p.QUIT: 
@@ -144,27 +150,40 @@ def input():
                 sys.exit() 
             if e.key == p.K_0: 
                 render_mode = 0 
-                main(render_mode) 
+                main(render_mode, brick_size, SIGHT_RADIUS, grid_font) 
             if e.key == p.K_1: 
                 render_mode = 1 
-                main(render_mode) 
+                main(render_mode, brick_size, SIGHT_RADIUS, grid_font) 
+            if e.key == p.K_2: 
+                brick_size += 1 
+                main(render_mode, brick_size, SIGHT_RADIUS, grid_font) 
+            if e.key == p.K_3: 
+                SIGHT_RADIUS += 1 
+                main(render_mode, brick_size, SIGHT_RADIUS, grid_font)
+            if e.key == p.K_4: 
+                font_size += 1 
+                grid_font = p.font.SysFont('comicsans', font_size) 
+                main(render_mode, brick_size, SIGHT_RADIUS, grid_font) 
 
-def update(mouse_pos, mouse_index, grid, grid_size, mid): 
-    px = mouse_index[0] 
-    py = mouse_index[1] 
-    grid[py][px].color = CYAN 
-    grid[py][px].icon = '@' 
-    grid[py][px].revealed = True 
+def update(mouse_pos, mouse_index, grid, grid_size, SIGHT_RADIUS): 
+    # Current mouse position.  Probably redundant with the mouse_index variable 
+    mouse_x = mouse_index[0] 
+    mouse_y = mouse_index[1] 
+    # Sets tile at current mouse position to a recognizable player tile and reveals it 
+    grid[mouse_y][mouse_x].color = CYAN 
+    grid[mouse_y][mouse_x].icon = '@' 
+    grid[mouse_y][mouse_x].revealed = True 
+    # Casts out number of rays specified by the RAYS variable 
     for i in range(0, RAYS, STEP): 
-        ax = sintable[i] 
-        ay = costable[i] 
-        x = px 
-        y = py 
+        # Get precalculated sin and cos values from tables 
+        angle_x = sintable[i] 
+        angle_y = costable[i] 
+        x = mouse_x 
+        y = mouse_y 
+        # For each ray, step through each tile it touches within the sight radius 
         for z in range(SIGHT_RADIUS): 
-            x += ax 
-            y += ay 
-            if x < 0 or y < 0 or x > grid_size-1 or y > grid_size-1: 
-                break 
+            x += angle_x 
+            y += angle_y 
             grid[int(round(y))][int(round(x))].revealed = True 
             if grid[int(round(y))][int(round(x))].id == 'wall': 
                 break 
@@ -193,12 +212,11 @@ def in_bounds(mouse_index, grid_size):
     else: 
         return False 
 
-def main(render_mode): 
+def main(render_mode, brick_size, SIGHT_RADIUS, grid_font): 
     mid = grid_size//2 
     mouse_pos = (p.mouse.get_pos()[0], p.mouse.get_pos()[1]) 
     mouse_index = (mouse_pos[0]/grid_size, mouse_pos[1]/grid_size) 
     grid = [[0 for x in range(grid_size)] for y in range(grid_size)] 
-    brick_size = 15 
     for y in range(len(grid[0])): 
         for x in range(len(grid[0])): 
             if x == 0 or x == grid_size-1 or y == 0 or y == grid_size-1: 
@@ -217,12 +235,12 @@ def main(render_mode):
         fps = clock.get_fps() 
         mouse_pos = (p.mouse.get_pos()[0], p.mouse.get_pos()[1]) 
         mouse_index = (mouse_pos[0]//brick_size, mouse_pos[1]//brick_size) 
-        input() 
+        input(render_mode, brick_size, SIGHT_RADIUS, grid_font) 
         if in_bounds(mouse_index, grid_size): 
             if grid[mouse_index[1]][mouse_index[0]].id == 'floor': 
-                update(mouse_pos, mouse_index, grid, grid_size, mid) 
+                update(mouse_pos, mouse_index, grid, grid_size, SIGHT_RADIUS) 
         render(SCREEN, mouse_pos, mouse_index, fps, font, grid, render_mode) 
         clock.tick(60) 
     p.quit() 
 
-main(render_mode) 
+main(render_mode, brick_size, SIGHT_RADIUS, grid_font) 

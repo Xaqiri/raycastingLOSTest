@@ -5,6 +5,11 @@ import math
 
 from brick import * 
 
+''' TODO '''
+# Convert to a generic library for use in any tile-based game 
+# Code blocks marked !fov are the most important blocks for the library 
+# Currently, the update() method contains all of the important raycasting code 
+
 BLACK = (0, 0, 0) 
 WHITE = (255, 255, 255) 
 GREEN = (0, 255, 0) 
@@ -25,16 +30,16 @@ p.display.set_caption('RL LOS Test')
 font_size = 20 
 font = p.font.SysFont('comicsans', 32) 
 grid_font = p.font.SysFont('comicsans', font_size) 
-num_blocks = 200 
+num_blocks = 400 
 
-render_mode = 1 
+render_mode = 0 
 brick_size = 15 
 
+#!fov 
 SIGHT_RADIUS = 10 
 RAYS = 360 
 # Higher step values draw less rays.  This speeds up the calculations, but produce an imperfect vision coverage.  STEP = 1 gets ~ 45-50fps average 
 STEP = 1 
-
 sintable = [
     0.00000, 0.01745, 0.03490, 0.05234, 0.06976, 0.08716, 0.10453,
     0.12187, 0.13917, 0.15643, 0.17365, 0.19081, 0.20791, 0.22495, 0.24192,
@@ -86,7 +91,6 @@ sintable = [
     -0.15643, -0.13917, -0.12187, -0.10453, -0.08716, -0.06976, -0.05234,
     -0.03490, -0.01745, -0.00000
 ]
-
 costable = [
     1.00000, 0.99985, 0.99939, 0.99863, 0.99756, 0.99619, 0.99452,
     0.99255, 0.99027, 0.98769, 0.98481, 0.98163, 0.97815, 0.97437, 0.97030,
@@ -138,8 +142,11 @@ costable = [
     0.98481, 0.98769, 0.99027, 0.99255, 0.99452, 0.99619, 0.99756, 0.99863,
     0.99939, 0.99985, 1.00000
 ]
+#!fov 
 
-def input(render_mode, brick_size, SIGHT_RADIUS, grid_font): 
+#grid_size = len(level[0]) 
+
+def input(render_mode, brick_size, SIGHT_RADIUS, grid_font, level): 
     global font_size 
     p.event.pump() 
     for e in p.event.get(): 
@@ -165,6 +172,7 @@ def input(render_mode, brick_size, SIGHT_RADIUS, grid_font):
                 grid_font = p.font.SysFont('comicsans', font_size) 
                 main(render_mode, brick_size, SIGHT_RADIUS, grid_font) 
 
+#!fov 
 def update(mouse_pos, mouse_index, grid, grid_size, SIGHT_RADIUS): 
     # Current mouse position.  Probably redundant with the mouse_index variable 
     mouse_x = mouse_index[0] 
@@ -187,47 +195,105 @@ def update(mouse_pos, mouse_index, grid, grid_size, SIGHT_RADIUS):
             grid[int(round(y))][int(round(x))].revealed = True 
             if grid[int(round(y))][int(round(x))].id == 'wall': 
                 break 
-            
+#!fov 
+
 def render(SCREEN, mouse_pos, mouse_index, fps, font, grid, render_mode): 
     SCREEN.fill(BLACK) 
     SCREEN.blit(font.render(str((mouse_pos[0], mouse_pos[1])), 1, ui_color), (WIN_WIDTH-125, 10)) 
     SCREEN.blit(font.render(str('{:.2f}'.format(fps)), 1, ui_color), (WIN_WIDTH-100, 100)) 
-    if mouse_index[0] < len(grid[0]) and mouse_index[1] < len(grid[0]): 
+    if mouse_index[0] < len(grid[0]) and mouse_index[1] < len(grid): 
         SCREEN.blit(font.render(str((mouse_index[0], mouse_index[1])), 1, ui_color), (WIN_WIDTH-125, 50)) 
     else: 
         SCREEN.blit(font.render("Mouse outside of grid", 1, ui_color), (WIN_WIDTH-250, 50)) 
-    for y in range(grid_size): 
-        for x in range(grid_size): 
-            if grid[x][y].revealed: 
-                grid[x][y].render(SCREEN, render_mode) 
-            if grid[x][y].id == 'floor': 
-                grid[x][y].icon = '.' 
-                grid[x][y].color = revealed_color 
-            grid[x][y].revealed = False 
+    for y in range(len(grid)): 
+        for x in range(len(grid[0])): 
+            if grid[y][x].revealed: 
+                grid[y][x].render(SCREEN, render_mode) 
+            if grid[y][x].id == 'floor': 
+                grid[y][x].icon = '.' 
+                grid[y][x].color = revealed_color 
+            grid[y][x].revealed = False 
     p.display.flip() 
 
-def in_bounds(mouse_index, grid_size): 
-    if mouse_index[0] < grid_size and mouse_index[1] < grid_size: 
+def in_bounds(mouse_index, grid): 
+    if mouse_index[0] < len(grid[0]) and mouse_index[1] < len(grid): 
         return True 
     else: 
         return False 
 
 def main(render_mode, brick_size, SIGHT_RADIUS, grid_font): 
-    mid = grid_size//2 
+    level = [ 
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0], 
+        [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0], 
+        [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0], 
+        [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] 
+    ]
+    grid = level 
+    #mid = grid_size//2 
     mouse_pos = (p.mouse.get_pos()[0], p.mouse.get_pos()[1]) 
-    mouse_index = (mouse_pos[0]/grid_size, mouse_pos[1]/grid_size) 
-    grid = [[0 for x in range(grid_size)] for y in range(grid_size)] 
-    for y in range(len(grid[0])): 
+    mouse_index = (mouse_pos[0]/len(grid), mouse_pos[1]/len(grid[0])) 
+    #grid = [[0 for x in range(grid_size)] for y in range(grid_size)] 
+    for y in range(len(grid)): 
         for x in range(len(grid[0])): 
-            if x == 0 or x == grid_size-1 or y == 0 or y == grid_size-1: 
+            if level[y][x] == 0: 
                 grid[y][x] = Brick((x*brick_size, y*brick_size), (brick_size, brick_size), wall_color, grid_font) 
             else: 
-                grid[y][x] = Brick((x*brick_size, y*brick_size), (brick_size, brick_size), revealed_color, grid_font) 
-    for i in range(num_blocks): 
-        x = random.randint(1, grid_size-2) 
-        y = random.randint(1, grid_size-2) 
-        grid[x][y].id = 'wall' 
-        grid[x][y].color = random.choice(COLORS) 
+                 grid[y][x] = Brick((x*brick_size, y*brick_size), (brick_size, brick_size), revealed_color, grid_font) 
+    #for y in range(len(grid[0])): 
+    #    for x in range(len(grid[0])): 
+    #        if x == 0 or x == grid_size-1 or y == 0 or y == grid_size-1: 
+    #            grid[y][x] = Brick((x*brick_size, y*brick_size), (brick_size, brick_size), #wall_color, grid_font) 
+    #        else: 
+    #            grid[y][x] = Brick((x*brick_size, y*brick_size), (brick_size, brick_size), #revealed_color, grid_font) 
+    #for i in range(num_blocks): 
+    #    x = random.randint(1, grid_size-2) 
+    #    y = random.randint(1, grid_size-2) 
+    #    grid[x][y].id = 'wall' 
+    #    grid[x][y].color = random.choice(COLORS) 
         
     clock = p.time.Clock() 
     done = False 
@@ -235,8 +301,8 @@ def main(render_mode, brick_size, SIGHT_RADIUS, grid_font):
         fps = clock.get_fps() 
         mouse_pos = (p.mouse.get_pos()[0], p.mouse.get_pos()[1]) 
         mouse_index = (mouse_pos[0]//brick_size, mouse_pos[1]//brick_size) 
-        input(render_mode, brick_size, SIGHT_RADIUS, grid_font) 
-        if in_bounds(mouse_index, grid_size): 
+        input(render_mode, brick_size, SIGHT_RADIUS, grid_font, level) 
+        if in_bounds(mouse_index, grid): 
             if grid[mouse_index[1]][mouse_index[0]].id == 'floor': 
                 update(mouse_pos, mouse_index, grid, grid_size, SIGHT_RADIUS) 
         render(SCREEN, mouse_pos, mouse_index, fps, font, grid, render_mode) 
